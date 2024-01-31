@@ -3,7 +3,7 @@ import collections
 import more_itertools
 
 
-def parse_input(input: str) -> list[tuple[str, str]]:
+def parse_input(input: str) -> list[tuple[str, ...]]:
     return [tuple(line.split("-")) for line in input.strip().splitlines()]
 
 
