@@ -22,7 +22,7 @@ def solution(input: str, twice: bool = False) -> int:
         graph[a].add(b)
         graph[b].add(a)
 
-    def rec(a, path) -> int:
+    def rec(a: str, path: list[str]) -> int:
         if a == "end":
             return 1
 
