@@ -2,9 +2,7 @@ import enum
 import math
 from typing import TypeAlias
 
-Hex: TypeAlias = int
-
-Bin: TypeAlias = str
+Binary: TypeAlias = str
 
 
 class TypeId(enum.IntEnum):
@@ -23,88 +21,89 @@ class LengthTypeId(enum.IntEnum):
     NUM_SUB_PACKETS = 1
 
 
-def parse_input(input: str) -> list[Hex]:
-    return [int(i, base=16) for i in input.strip()]
+def parse_input(input: str) -> Binary:
+    return "".join(f"{int(i, base=16):04b}" for i in input.strip())
 
 
-def bin_to_int(l: Bin) -> int:
-    return int(l, base=2)
+def bin_to_int(binary: Binary) -> int:
+    return int(binary, base=2)
 
 
-def solution(input: str) -> tuple[int, list[int], int]:
-    message = parse_input(input)
+def parse_packet(
+    binary: Binary, packets: float = float("inf")
+) -> tuple[int, list[int], int]:
+    length = 0
+    values = []
+    versions = 0
 
-    def parse(binary: Bin, packets: float = float("inf")):
-        versions = 0
-        idx = 0
-        values = []
+    while any(i == "1" for i in binary) and packets > 0:
+        version, type_id, binary = (
+            bin_to_int(binary[:3]),
+            bin_to_int(binary[3:6]),
+            binary[6:],
+        )
+        length += 6
 
-        while any(i == "1" for i in binary) and packets > 0:
-            version, type_id, binary = (
-                bin_to_int(binary[:3]),
-                bin_to_int(binary[3:6]),
-                binary[6:],
-            )
-            idx += 6
+        versions += version
 
-            versions += version
+        if type_id == TypeId.LITERAL_VALUE:
+            num = ""
+            prefix: str | None = None
 
-            if type_id == TypeId.LITERAL_VALUE:
-                num = ""
-                prefix: str | None = None
+            while prefix != "0":
+                prefix, num, binary = binary[0], num + binary[1:5], binary[5:]
+                length += 5
 
-                while prefix != "0":
-                    prefix, num, binary = binary[0], num + binary[1:5], binary[5:]
-                    idx += 5
+            values += [bin_to_int(num)]
+        else:
+            length_type_id, binary = binary[0], binary[1:]
 
-                values += [bin_to_int(num)]
+            if int(length_type_id) == LengthTypeId.TOTAL_LENGTH:
+                total_length, binary = bin_to_int(binary[:15]), binary[15:]
+                _, packet_values, packet_versions = parse_packet(binary[:total_length])
+                length += 16 + total_length
             else:
-                length_type_id, binary = binary[0], binary[1:]
+                sub_packets, binary = bin_to_int(binary[:11]), binary[11:]
+                total_length, packet_values, packet_versions = parse_packet(
+                    binary, sub_packets
+                )
+                length += 12 + total_length
 
-                if int(length_type_id) == LengthTypeId.TOTAL_LENGTH:
-                    total_length, binary = bin_to_int(binary[:15]), binary[15:]
-                    _, packet_values, packet_versions = parse(binary[:total_length])
-                    idx += 16 + total_length
-                else:
-                    sub_packets, binary = bin_to_int(binary[:11]), binary[11:]
-                    total_length, packet_values, packet_versions = parse(
-                        binary, sub_packets
-                    )
-                    idx += 12 + total_length
+            binary = binary[total_length:]
 
-                binary = binary[total_length:]
+            versions += packet_versions
 
-                versions += packet_versions
+            match type_id:
+                case TypeId.SUM:
+                    values += [sum(packet_values)]
+                case TypeId.PRODUCT:
+                    values += [math.prod(packet_values)]
+                case TypeId.MINIMUM:
+                    values += [min(packet_values)]
+                case TypeId.MAXIMUM:
+                    values += [max(packet_values)]
+                case TypeId.GREATER_THAN:
+                    values += [int(packet_values[0] > packet_values[1])]
+                case TypeId.LESS_THAN:
+                    values += [int(packet_values[0] < packet_values[1])]
+                case TypeId.EQUAL_TO:
+                    values += [int(packet_values[0] == packet_values[1])]
 
-                match type_id:
-                    case TypeId.SUM:
-                        values += [sum(packet_values)]
-                    case TypeId.PRODUCT:
-                        values += [math.prod(packet_values)]
-                    case TypeId.MINIMUM:
-                        values += [min(packet_values)]
-                    case TypeId.MAXIMUM:
-                        values += [max(packet_values)]
-                    case TypeId.GREATER_THAN:
-                        values += [int(packet_values[0] > packet_values[1])]
-                    case TypeId.LESS_THAN:
-                        values += [int(packet_values[0] < packet_values[1])]
-                    case TypeId.EQUAL_TO:
-                        values += [int(packet_values[0] == packet_values[1])]
+        packets -= 1
 
-            packets -= 1
-
-        return idx, values, versions
-
-    return parse("".join(f"{i:04b}" for i in message))
+    return length, values, versions
 
 
 def part1(input: str) -> int:
-    return solution(input)[2]
+    message = parse_input(input)
+
+    return parse_packet(message)[2]
 
 
 def part2(input: str) -> int:
-    return solution(input)[1][0]
+    message = parse_input(input)
+
+    return parse_packet(message)[1][0]
 
 
 def main() -> None:
