@@ -2,17 +2,17 @@ from .main import part1, part2
 
 
 def test_part1():
-    for input, ex in (
+    for input, expected in (
         ("8A004A801A8002F478", 16),
         ("620080001611562C8802118E34", 12),
         ("C0015000016115A2E0802F182340", 23),
         ("A0016C880162017C3686B18A3D4780", 31),
     ):
-        assert part1(input) == ex
+        assert part1(input) == expected
 
 
 def test_part2():
-    for input, ex in (
+    for input, expected in (
         ("C200B40A82", 3),
         ("04005AC33890", 54),
         ("880086C3E88112", 7),
@@ -22,7 +22,7 @@ def test_part2():
         ("9C005AC2F8F0", 0),
         ("9C0141080250320F1802104A08", 1),
     ):
-        assert part2(input) == ex
+        assert part2(input) == expected
 
 
 def test_input():
