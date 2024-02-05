@@ -1,8 +1,10 @@
+import functools
 import itertools
 import re
-from typing import Iterator, NamedTuple
+from typing import Iterator, NamedTuple, TypeAlias
 
-import more_itertools
+
+Txy: TypeAlias = tuple[int, int]
 
 
 class TargetArea(NamedTuple):
@@ -20,14 +22,17 @@ def parse_input(input: str) -> TargetArea:
     return TargetArea(*map(int, match.groups()))
 
 
+@functools.cache
 def trajectory(
-    velocity: tuple[int, int], position: tuple[int, int] = (0, 0)
-) -> Iterator[tuple[int, int]]:
+    velocity: Txy, target_area: TargetArea, position: Txy = (0, 0)
+) -> list[Txy] | None:
     x, y = position
     vx, vy = velocity
 
+    positions = []
+
     while True:
-        yield x, y
+        positions.append((x, y))
 
         x += vx
         y += vy
@@ -39,8 +44,17 @@ def trajectory(
 
         vy -= 1
 
+        if (
+            target_area.x_min <= x <= target_area.x_max
+            and target_area.y_min <= y <= target_area.y_max
+        ):
+            return positions
 
-def solution(input: str) -> Iterator[tuple[bool, list[tuple[int, int]]]]:
+        if y < target_area.y_min:
+            return None
+
+
+def solution(input: str) -> Iterator[list[Txy] | None]:
     target_area = parse_input(input)
 
     y_max = max(abs(target_area.y_min), abs(target_area.y_max))
@@ -48,28 +62,18 @@ def solution(input: str) -> Iterator[tuple[bool, list[tuple[int, int]]]]:
     x = range(target_area.x_max + 1)
     y = range(-y_max, y_max + 1)
 
-    in_target_area = (
-        lambda i: target_area.x_min <= i[0] <= target_area.x_max
-        and target_area.y_min <= i[1] <= target_area.y_max
-    )
-
-    stop = lambda i: i[1] >= target_area.y_min and not in_target_area(i)
-
     for velocity in itertools.product(x, y):
-        trajectory_ = list(
-            more_itertools.takewhile_inclusive(stop, trajectory(velocity))
-        )
-        yield len(trajectory_) > 0 and in_target_area(trajectory_[-1]), trajectory_
+        yield trajectory(velocity, target_area)
 
 
 def part1(input: str) -> int:
     return max(
-        max(y for _, y in trajectory_) for ok, trajectory_ in solution(input) if ok
+        max(y for _, y in trajectory_) for trajectory_ in solution(input) if trajectory_
     )
 
 
 def part2(input: str) -> int:
-    return sum(1 for ok, _ in solution(input) if ok)
+    return sum(1 for trajectory_ in solution(input) if trajectory_)
 
 
 def main() -> None:
