@@ -1,5 +1,5 @@
 import enum
-from typing import Optional, TypeAlias
+from typing import TypeAlias
 
 Varibles: TypeAlias = dict[str, int]
 
